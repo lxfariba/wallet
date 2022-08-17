@@ -5,13 +5,14 @@ from json import JSONEncoder
 from datetime import datetime
 from django.utils import timezone
 from django.conf import settings
-
+from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import User, Token, Expense, Income
+from django.contrib.auth.models import User
+from .models import Token, Expense, Income
 
 from postmark import PMMail
 
@@ -95,19 +96,24 @@ def register(request):
 
 
 """ user submit an expense """
+@csrf_exempt
 def submit_expense(request):
 
 	# TODO: revise validation for the amount
 
+	print(request.POST)
+	
 	this_date = request.POST['date'] if 'date' in request.POST else timezone.now()
 	this_text = request.POST['text'] if 'text' in request.POST else ""
 	this_amount = request.POST['amount'] if 'amount' in request.POST else "0"
 	this_token = request.POST['token'] if 'token' in request.POST else ""
-	this_user = get_object_or_404(User, token__token=this_token)
 
+	# this_user = get_object_or_404(User, token__token=this_token)
+	this_user = User.objects.filter(token__token = this_token).get()
 	Expense.objects.create(user=this_user, amount=this_amount,
 							text=this_text, date=this_date)
-
+	# print(this_token)
+	# print(this_amount)
 	return JsonResponse({
         'status': 'ok',
         }, encoder=JSONEncoder)  # return {'status':'ok'}
